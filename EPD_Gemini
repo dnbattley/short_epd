@@ -1,0 +1,248 @@
+#include <EPD_SPI.h>
+#include "EPD.h"
+
+// Constants
+#define EPD_WHITE 0xFF
+#define EPD_BLACK 0x00
+#define EPD_UPDATE_FULL 0
+#define EPD_UPDATE_FAST 1
+#define EPD_UPDATE_PARTIAL 2
+#define EPD_GRAY_LEVELS 4
+
+// Global Variables
+unsigned char partImage[1000]; // Partial canvas space
+
+// Helper Functions
+void epd_wait_busy(void) {
+    while (isEPD_W21_BUSY == 0); // Wait until BUSY is high
+}
+
+void epd_reset(void) {
+    EPD_W21_RST_0;
+    delay(10);
+    EPD_W21_RST_1;
+    delay(10);
+}
+
+// Initialization
+void epd_init(int mode) {
+    epd_reset();
+    EPD_W21_WriteCMD(0x00);
+    EPD_W21_WriteDATA(0x1F); // EPD_W21_WriteDATA(0x13) here for 180 deg
+    EPD_W21_WriteCMD(0x04); // POWER ON
+    delay(300);
+    epd_wait_busy();
+
+    switch (mode) {
+        case EPD_UPDATE_FAST:
+            EPD_W21_WriteCMD(0X50); // VCOM AND DATA INTERVAL SETTING
+            EPD_W21_WriteDATA(0x29);
+            EPD_W21_WriteDATA(0x07);
+            EPD_W21_WriteCMD(0xE0);
+            EPD_W21_WriteDATA(0x02);
+            EPD_W21_WriteCMD(0xE5);
+            EPD_W21_WriteDATA(0x5A);
+            break;
+
+        case EPD_UPDATE_PARTIAL:
+            EPD_W21_WriteCMD(0xE0);
+            EPD_W21_WriteDATA(0x02);
+            EPD_W21_WriteCMD(0xE5);
+            EPD_W21_WriteDATA(0x6E);
+            EPD_W21_WriteCMD(0X50); // VCOM AND DATA INTERVAL SETTING
+            EPD_W21_WriteDATA(0xA9);
+            EPD_W21_WriteDATA(0x07);
+            break;
+
+        case EPD_UPDATE_FULL:
+        default: // Default case for safety
+            EPD_W21_WriteCMD(0X50); // VCOM AND DATA INTERVAL SETTING
+            EPD_W21_WriteDATA(0x21);
+            EPD_W21_WriteDATA(0x07);
+
+            /* Additional code for 4G
+            EPD_W21_WriteCMD(0xE0);
+            EPD_W21_WriteDATA(0x02);
+            EPD_W21_WriteCMD(0xE5);
+            EPD_W21_WriteDATA(0x5F);
+            */
+
+            break;
+    }
+}
+
+// Update
+void epd_update(void) {
+    EPD_W21_WriteCMD(0x12); // DISPLAY update
+    delay(1);
+    epd_wait_busy();
+}
+
+// Data Transfer
+void epd_fill_screen(const unsigned char *data, unsigned char fill_value, bool fast_update) {
+    unsigned int i;
+
+    EPD_W21_WriteCMD(0x10); // write old data
+    for (i = 0; i < EPD_ARRAY; i++) {
+        EPD_W21_WriteDATA(EPD_WHITE);
+    }
+
+    EPD_W21_WriteCMD(0x13); // write new data
+    if (data != NULL) {
+        for (i = 0; i < EPD_ARRAY; i++) {
+            EPD_W21_WriteDATA(data[i]);
+        }
+    } else {
+        for (i = 0; i < EPD_ARRAY; i++) {
+            EPD_W21_WriteDATA(fill_value);
+        }
+    }
+    epd_update();
+}
+
+void epd_display(const unsigned char *image) {
+    epd_fill_screen(image, EPD_WHITE, false);
+}
+
+void epd_partial_update(unsigned int x_start, unsigned int y_start, const unsigned char *data, unsigned int part_column, unsigned int part_line) {
+    unsigned int x_end = x_start + part_line - 1;
+    unsigned int y_end = y_start + part_column - 1;
+    unsigned int i;
+
+    epd_init(EPD_UPDATE_PARTIAL);
+
+    EPD_W21_WriteCMD(0x91); // Enter partial mode
+    EPD_W21_WriteCMD(0x90); // Resolution setting
+    EPD_W21_WriteDATA(x_start / 256);
+    EPD_W21_WriteDATA(x_start % 256);
+    EPD_W21_WriteDATA(x_end / 256);
+    EPD_W21_WriteDATA(x_end % 256 - 1);
+    EPD_W21_WriteDATA(y_start / 256);
+    EPD_W21_WriteDATA(y_start % 256);
+    EPD_W21_WriteDATA(y_end / 256);
+    EPD_W21_WriteDATA(y_end % 256 - 1);
+    EPD_W21_WriteDATA(0x01);
+
+    EPD_W21_WriteCMD(0x13); // Write new data
+    for (i = 0; i < part_column * part_line / 8; i++) {
+        EPD_W21_WriteDATA(data[i]);
+    }
+    epd_update();
+}
+
+void epd_partial_update_all(const unsigned char *data) {
+    epd_partial_update(0, 0, data, EPD_HEIGHT, EPD_WIDTH);
+}
+
+void epd_partial_update_ram(unsigned int x_start, unsigned int y_start, const unsigned char *data_a, const unsigned char *data_b, const unsigned char *data_c, const unsigned char *data_d, const unsigned char *data_e, unsigned char num, unsigned int part_column, unsigned int part_line) {
+    unsigned int i, j;
+    unsigned int x_end, y_end;
+
+    x_end = x_start + part_line * num - 1;
+    y_end = y_start + part_column - 1;
+
+    EPD_W21_WriteCMD(0x91); // Enter partial mode
+    EPD_W21_WriteCMD(0x90); // Resolution setting
+    EPD_W21_WriteDATA(x_start / 256);
+    EPD_W21_WriteDATA(x_start % 256);
+    EPD_W21_WriteDATA(x_end / 256);
+    EPD_W21_WriteDATA(x_end % 256 - 1);
+    EPD_W21_WriteDATA(y_start / 256);
+    EPD_W21_WriteDATA(y_start % 256);
+    EPD_W21_WriteDATA(y_end / 256);
+    EPD_W21_WriteDATA(y_end % 256 - 1);
+    EPD_W21_WriteDATA(0x01);
+
+    EPD_W21_WriteCMD(0x13); // Write new data
+    for (i = 0; i < part_column; i++) {
+        for (j = 0; j < part_line / 8; j++) {
+            EPD_W21_WriteDATA(data_a[i * part_line / 8 + j]);
+        }
+        for (j = 0; j < part_line / 8; j++) {
+            EPD_W21_WriteDATA(data_b[i * part_line / 8 + j]);
+        }
+        for (j = 0; j < part_line / 8; j++) {
+            EPD_W21_WriteDATA(data_c[i * part_line / 8 + j]);
+        }
+        for (j = 0; j < part_line / 8; j++) {
+            EPD_W21_WriteDATA(data_d[i * part_line / 8 + j]);
+        }
+        for (j = 0; j < part_line / 8; j++) {
+            EPD_W21_WriteDATA(data_e[i * part_line / 8 + j]);
+        }
+    }
+    epd_update();
+}
+
+void epd_partial_update_time(unsigned int x_start, unsigned int y_start, const unsigned char *data_a, const unsigned char *data_b, const unsigned char *data_c, const unsigned char *data_d, const unsigned char *data_e, unsigned char num, unsigned int part_column, unsigned int part_line) {
+    epd_partial_update_ram(x_start, y_start, data_a, data_b, data_c, data_d, data_e, num, part_column, part_line);
+    epd_update();
+}
+
+void epd_fill_screen_4gray(const unsigned char *data) {
+    unsigned int i, j, k;
+    unsigned char temp1, temp2, temp3;
+
+    EPD_W21_WriteCMD(0x10); // old data
+
+    for (i = 0; i < 38880; i++) { // 38880*2  648*480
+        temp3 = 0;
+        for (j = 0; j < 2; j++) {
+            temp1 = data[i * 2 + j];
+            for (k = 0; k < 4; k++) {
+                temp2 = temp1 & 0xC0;
+                if (temp2 == 0xC0)
+                    temp3 |= 0x01; // white
+                else if (temp2 == 0x00)
+                    temp3 |= 0x00; // black
+                else if ((temp2 >= 0x80) && (temp2 < 0xC0))
+                    temp3 |= 0x00; // gray1
+                else if (temp2 == 0x40)
+                    temp3 |= 0x01; // gray2
+                if ((j == 0 && k <= 3) || (j == 1 && k <= 2)) {
+                    temp3 <<= 1;
+                    temp1 <<= 2;
+                }
+            }
+        }
+        EPD_W21_WriteDATA(temp3);
+    }
+
+    EPD_W21_WriteCMD(0x13); // new data
+    for (i = 0; i < 38880 * 2; i++) { // 38880*2   648*480
+        temp3 = 0;
+        for (j = 0; j < 2; j++) {
+            temp1 = data[i * 2 + j];
+            for (k = 0; k < 4; k++) {
+                temp2 = temp1 & 0xC0;
+                if (temp2 == 0xC0)
+                    temp3 |= 0x01; // white
+                else if (temp2 == 0x00)
+                    temp3 |= 0x00; // black
+                else if ((temp2 >= 0x80) && (temp2 < 0xC0))
+                    temp3 |= 0x01; // gray1
+                else if (temp2 == 0x40)
+                    temp3 |= 0x00; // gray2
+
+                if ((j == 0 && k <= 3) || (j == 1 && k <= 2)) {
+                    temp3 <<= 1;
+                    temp1 <<= 2;
+                }
+            }
+        }
+        EPD_W21_WriteDATA(temp3);
+    }
+
+    epd_update();
+}
+
+void epd_deep_sleep(void) {
+    EPD_W21_WriteCMD(0X50); // VCOM AND DATA INTERVAL SETTING
+    EPD_W21_WriteDATA(0xf7); // WBmode:VBDF 17|D7 VBDW 97 VBDB 57  WBRmode:VBDF F7 VBDW 77 VBDB 37  VBDR B7
+
+    EPD_W21_WriteCMD(0X02); // power off
+    epd_wait_busy();
+    delay(100);
+    EPD_W21_WriteCMD(0X07); // deep sleep
+    EPD_W21_WriteDATA(0xA5);
+}
