@@ -4,12 +4,12 @@
 unsigned char ImageBW[EPD_ARRAY];//Define canvas space  
 void setup() {
  /* ESP32-WROOM-32D (Using hardware SPI)
-  BUSY——GPIO13  RES——GPIO12  DC——GPIO14  CS——GPIO27  SCK—GPIO18  SDIN—GPIO23  */
+  BUSY——GPIO32  RES——GPIO33  DC——GPIO25  CS——GPIO26  SCK—GPIO18  SDIN—GPIO23  */
    pinMode(14, INPUT);  //BUSY
    pinMode(15, OUTPUT); //RES 
    pinMode(16, OUTPUT); //DC   
    pinMode(17, OUTPUT); //CS   
-
+  BUSY——GPIO27  RES——GPIO14  DC——GPIO12  CS——GPIO13  SCK—GPIO18  SDIN—GPIO23  */
    pinMode(19, INPUT);  //BUSY
    pinMode(20, OUTPUT); //RES 
    pinMode(21, OUTPUT); //DC   
