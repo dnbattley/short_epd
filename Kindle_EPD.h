@@ -15,10 +15,10 @@ DC——A16
 CS——A17
 
 Screen 2:
-BUSY——A18
-RES——A19
-DC——A20
-CS——A21
+BUSY——A19
+RES——A20
+DC——A21
+CS——A22
 
 SCK—GPIO18
 SDIN—GPIO23
@@ -34,13 +34,13 @@ SDIN—GPIO23
 #define screen1_CS_1 digitalWrite(A17, HIGH)
 
 // Screen 2 pins
-#define isScreen2_BUSY digitalRead(A18)
-#define screen2_RST_0 digitalWrite(A19, LOW)
-#define screen2_RST_1 digitalWrite(A19, HIGH)
-#define screen2_DC_0 digitalWrite(A20, LOW)
-#define screen2_DC_1 digitalWrite(A20, HIGH)
-#define screen2_CS_0 digitalWrite(A21, LOW)
-#define screen2_CS_1 digitalWrite(A21, HIGH)
+#define isScreen2_BUSY digitalRead(A19)
+#define screen2_RST_0 digitalWrite(A20, LOW)
+#define screen2_RST_1 digitalWrite(A20, HIGH)
+#define screen2_DC_0 digitalWrite(A21, LOW)
+#define screen2_DC_1 digitalWrite(A21, HIGH)
+#define screen2_CS_0 digitalWrite(A22, LOW)
+#define screen2_CS_1 digitalWrite(A22, HIGH)
 
 void SPI_Write(unsigned char value);
 void WriteData(unsigned char data, int screen);
