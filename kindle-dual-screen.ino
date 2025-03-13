@@ -4,16 +4,17 @@
 unsigned char ImageBW[EPD_ARRAY];//Define canvas space  
 void setup() {
 
-  // BUSY——GPIO32  RES——GPIO33  DC——GPIO25  CS——GPIO26  SCK—GPIO18  SDIN—GPIO23
-   pinMode(14, INPUT);  //BUSY
-   pinMode(15, OUTPUT); //RES 
-   pinMode(16, OUTPUT); //DC   
-   pinMode(17, OUTPUT); //CS   
-  // BUSY——GPIO27  RES——GPIO14  DC——GPIO12  CS——GPIO13  SCK—GPIO18  SDIN—GPIO23
-   pinMode(19, INPUT);  //BUSY
-   pinMode(20, OUTPUT); //RES 
-   pinMode(21, OUTPUT); //DC   
-   pinMode(22, OUTPUT); //CS 
+// BUSY——GPIO32  RES——GPIO33  DC——GPIO25  CS——GPIO26  SCK—GPIO18  SDIN—GPIO23
+pinMode(32, INPUT);  // BUSY
+pinMode(33, OUTPUT); // RES
+pinMode(25, OUTPUT); // DC
+pinMode(26, OUTPUT); // CS
+// BUSY——GPIO27  RES——GPIO14  DC——GPIO12  CS——GPIO13  SCK—GPIO18  SDIN—GPIO23
+pinMode(27, INPUT);  // BUSY
+pinMode(14, OUTPUT); // RES
+pinMode(12, OUTPUT); // DC
+pinMode(13, OUTPUT); // CS
+
    //SPI
    SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0)); 
    SPI.begin ();  
