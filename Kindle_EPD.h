@@ -9,38 +9,38 @@
 /*
 ESP32-WROOM-32D (Using hardware SPI)
 Screen 1:
-BUSY——A14
-RES——A15
-DC——A16
-CS——A17
+BUSY——32
+RES——33
+DC——25
+CS——26
 
 Screen 2:
-BUSY——A19
-RES——A20
-DC——A21
-CS——A22
+BUSY——27
+RES——14
+DC——12
+CS——13
 
 SCK—GPIO18
 SDIN—GPIO23
 */
 
 // Screen 1 pins
-#define isScreen1_BUSY digitalRead(A14)
-#define screen1_RST_0 digitalWrite(A15, LOW)
-#define screen1_RST_1 digitalWrite(A15, HIGH)
-#define screen1_DC_0 digitalWrite(A16, LOW)
-#define screen1_DC_1 digitalWrite(A16, HIGH)
-#define screen1_CS_0 digitalWrite(A17, LOW)
-#define screen1_CS_1 digitalWrite(A17, HIGH)
+#define isScreen1_BUSY digitalRead(32)
+#define screen1_RST_0 digitalWrite(33, LOW)
+#define screen1_RST_1 digitalWrite(33, HIGH)
+#define screen1_DC_0 digitalWrite(25, LOW)
+#define screen1_DC_1 digitalWrite(25, HIGH)
+#define screen1_CS_0 digitalWrite(26, LOW)
+#define screen1_CS_1 digitalWrite(26, HIGH)
 
 // Screen 2 pins
-#define isScreen2_BUSY digitalRead(A19)
-#define screen2_RST_0 digitalWrite(A20, LOW)
-#define screen2_RST_1 digitalWrite(A20, HIGH)
-#define screen2_DC_0 digitalWrite(A21, LOW)
-#define screen2_DC_1 digitalWrite(A21, HIGH)
-#define screen2_CS_0 digitalWrite(A22, LOW)
-#define screen2_CS_1 digitalWrite(A22, HIGH)
+#define isScreen2_BUSY digitalRead(27)
+#define screen2_RST_0 digitalWrite(14, LOW)
+#define screen2_RST_1 digitalWrite(14, HIGH)
+#define screen2_DC_0 digitalWrite(12, LOW)
+#define screen2_DC_1 digitalWrite(12, HIGH)
+#define screen2_CS_0 digitalWrite(13, LOW)
+#define screen2_CS_1 digitalWrite(13, HIGH)
 
 void SPI_Write(unsigned char value);
 void WriteData(unsigned char data, int screen);
