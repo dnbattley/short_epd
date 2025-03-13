@@ -5,10 +5,6 @@
 #define EPD_HEIGHT  480
 #define EPD_ARRAY  EPD_WIDTH*EPD_HEIGHT/8  
 
-#define UWORD   uint16_t
-
-#include "fonts.h"
-//#include "GUI/GUI_Paint.h"
 //
 //IO settings
 /*
@@ -57,12 +53,6 @@ void EPD_Init_4G(void);
 void EPD_WhiteScreen_ALL_4G (const unsigned char *datas);		
  //GUI
  void EPD_Display(unsigned char *Image);
-
-//ADD PAINT FUNCTIONS
-
-void Paint_DrawString_EN(UWORD Xstart, UWORD Ystart, const char * pString, sFONT* Font, UWORD Color_Foreground, UWORD Color_Background);
-
-
 
 #endif
 
