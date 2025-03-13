@@ -1,4 +1,4 @@
-#include "EPD.h"
+#include "Kindle_EPD.h"
 
 // Constants
 #define EPD_WHITE 0xFF
