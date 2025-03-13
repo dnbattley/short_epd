@@ -1,4 +1,7 @@
 #include "Kindle_EPD.h"
+#include <Arduino.h>
+#include <SPI.h>
+#include <vector>
 
 // Constants
 #define EPD_WHITE 0xFF
@@ -7,6 +10,7 @@
 #define UPDATE_FAST 1
 #define UPDATE_PARTIAL 2
 #define GRAY_LEVELS 4
+
 
 #define RESET_DELAY 10
 #define POWER_ON_DELAY 300
@@ -138,35 +142,78 @@ void updateDisplay(int screen) {
 }
 
 // Data Transfer
-void fillScreen(const unsigned char *data, unsigned char fill_value, bool fast_update, int screen) {
+void fillScreen(const std::vector<unsigned char>& data, unsigned char fill_value, bool fast_update, int screen) {
     unsigned int i;
 
     WriteCmd(0x10, screen); // write old data
-    for (i = 0; i < EPD_ARRAY; i++) {
+    for (i = 0; i < EXPECTED_LENGTH; i++) {
         WriteData(EPD_WHITE, screen);
     }
 
     WriteCmd(0x13, screen); // write new data
-    if (data != NULL) {
-        for (i = 0; i < EPD_ARRAY; i++) {
+    if (!data.empty()) {
+        for (i = 0; i < data.size(); i++) {
             WriteData(data[i], screen);
         }
     } else {
-        for (i = 0; i < EPD_ARRAY; i++) {
+        for (i = 0; i < EXPECTED_LENGTH; i++) {
             WriteData(fill_value, screen);
         }
     }
     updateDisplay(screen);
 }
 
-void displayImage(const unsigned char *image, int screen) {
-    fillScreen(image, EPD_WHITE, false, screen);
+
+// Handle cases where an image is provided
+void displayImage(const std::vector<unsigned char>& image, int screen, 
+                  bool fast_update , bool partial_update, 
+                  unsigned int x1, unsigned int y1, 
+                  unsigned int x2, unsigned int y2) {
+    // Handle initialization
+    initDisplay(fast_update ? UPDATE_FAST : (partial_update ? UPDATE_PARTIAL : UPDATE_FULL), screen);
+
+    if (partial_update) {
+        // Validate coordinates
+        if (x1 >= SCREEN_WIDTH || y1 >= SCREEN_HEIGHT || x2 >= SCREEN_WIDTH || y2 >= SCREEN_HEIGHT || x1 > x2 || y1 > y2) {
+            Serial.println("Error: Invalid coordinates for partial update.");
+            return;
+        }
+
+        // Calculate expected length for partial update
+        unsigned int expected_partial_length = ((x2 - x1 + 1) * (y2 - y1 + 1)) / 8;
+        if (image.size() < expected_partial_length) {
+            Serial.printf("Warning: Image data length (%u bytes) is smaller than expected (%u bytes).\n", image.size(), expected_partial_length);
+        }
+
+        // Partial update
+        partialUpdate(x1, y1, image, x2 - x1 + 1, y2 - y1 + 1, screen);
+    } else {
+        // Full update
+        if (image.size() < EXPECTED_LENGTH) {
+            Serial.printf("Warning: Image data length (%u bytes) is smaller than expected (%u bytes).\n", image.size(), EXPECTED_LENGTH);
+        }
+
+        // Perform full screen update
+        fillScreen(image, EPD_WHITE, fast_update, screen);
+    }
 }
 
-void partialUpdate(unsigned int x_start, unsigned int y_start, const unsigned char *data, unsigned int part_column, unsigned int part_line, int screen) {
-    unsigned int x_end = x_start + part_line - 1;
-    unsigned int y_end = y_start + part_column - 1;
+// Handle cases where nullptr is passed (clear the screen)
+void displayImage(std::nullptr_t, int screen, bool fast_update) {
+    fillScreen({}, EPD_WHITE, fast_update, screen); // Clear the screen
+}
+
+void partialUpdate(unsigned int x_start, unsigned int y_start, const std::vector<unsigned char>& data, 
+                   unsigned int part_width, unsigned int part_height, int screen) {
+    unsigned int x_end = x_start + part_width - 1;
+    unsigned int y_end = y_start + part_height - 1;
     unsigned int i;
+
+    // Validate dimensions
+    if (x_end >= SCREEN_WIDTH || y_end >= SCREEN_HEIGHT) {
+        Serial.println("Error: Partial update dimensions exceed screen size.");
+        return;
+    }
 
     initDisplay(UPDATE_PARTIAL, screen);
 
@@ -175,22 +222,27 @@ void partialUpdate(unsigned int x_start, unsigned int y_start, const unsigned ch
     WriteData(x_start / 256, screen);
     WriteData(x_start % 256, screen);
     WriteData(x_end / 256, screen);
-    WriteData((x_end % 256) - 1, screen);
+    WriteData((x_end % 256), screen);
     WriteData(y_start / 256, screen);
     WriteData(y_start % 256, screen);
     WriteData(y_end / 256, screen);
-    WriteData((y_end % 256) - 1, screen);
+    WriteData((y_end % 256), screen);
     WriteData(0x01, screen);
 
-    WriteCmd(0x13, screen); // Write new data
-    for (i = 0; i < part_column * part_line / 8; i++) {
+    // Write image data
+    for (i = 0; i < data.size(); i++) {
         WriteData(data[i], screen);
     }
+
     updateDisplay(screen);
 }
 
-void partialUpdateAll(const unsigned char *data, int screen) {
-    partialUpdate(0, 0, data, EPD_HEIGHT, EPD_WIDTH, screen);
+void partialUpdateAll(const std::vector<unsigned char>& data, int screen) {
+    if (data.size() < EXPECTED_LENGTH) {
+        Serial.println("Error: Data length is smaller than the full screen size.");
+        return;
+    }
+    partialUpdate(0, 0, data, SCREEN_HEIGHT, SCREEN_WIDTH, screen); // Correct call
 }
 
 void deepSleep(int screen) {

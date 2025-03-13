@@ -1,9 +1,13 @@
 #ifndef _EPD_H_
 #define _EPD_H_
 
-#define EPD_WIDTH   648 
-#define EPD_HEIGHT  480
-#define EPD_ARRAY  (EPD_WIDTH * EPD_HEIGHT / 8)
+#include <SPI.h>
+#include <vector> // Include vector for modern C++ arrays
+
+
+#define SCREEN_WIDTH 648
+#define SCREEN_HEIGHT 480
+#define EXPECTED_LENGTH (SCREEN_WIDTH * SCREEN_HEIGHT / 8) // Data length in bytes
 
 // IO settings
 /*
@@ -42,22 +46,26 @@ SDIN—GPIO23
 #define screen2_CS_0 digitalWrite(13, LOW)
 #define screen2_CS_1 digitalWrite(13, HIGH)
 
+// Function prototypes
 void SPI_Write(unsigned char value);
 void WriteData(unsigned char data, int screen);
 void WriteCmd(unsigned char command, int screen);
 
 // Full screen update display
 void initDisplay(int mode, int screen);
-void fillScreenALL(const unsigned char *data, int screen);
-void fillScreenWhite(int screen);
-void fillScreenBlack(int screen);
+void fillScreen(const std::vector<unsigned char>& data, unsigned char fill_value, bool fast_update, int screen);
 void deepSleep(int screen);
 
 // Partial update display
-void partialUpdate(unsigned int x_start, unsigned int y_start, const unsigned char *data, unsigned int part_column, unsigned int part_line, int screen);
-void partialUpdateAll(const unsigned char *data, int screen);
+void partialUpdate(unsigned int x_start, unsigned int y_start, const std::vector<unsigned char>& data, 
+                   unsigned int part_column, unsigned int part_line, int screen);
+void partialUpdateAll(const std::vector<unsigned char>& data, int screen);
 
 // GUI
-void displayImage(const unsigned char *Image, int screen);
+void displayImage(const std::vector<unsigned char>& image, int screen, 
+                  bool fast_update = false, bool partial_update = false, 
+                  unsigned int x1 = 0, unsigned int y1 = 0, 
+                  unsigned int x2 = SCREEN_WIDTH - 1, unsigned int y2 = SCREEN_HEIGHT - 1);
+void displayImage(std::nullptr_t, int screen, bool fast_update = false); // Overload for clearing the screen
 
 #endif
