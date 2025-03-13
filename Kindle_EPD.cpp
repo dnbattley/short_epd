@@ -8,30 +8,36 @@
 #define EPD_UPDATE_PARTIAL 2
 #define EPD_GRAY_LEVELS 4
 
+#define RESET_DELAY 10
+#define POWER_ON_DELAY 300
+#define DISPLAY_UPDATE_DELAY 1
+#define SLEEP_DELAY 100
+
 // Functional components for SPI commands
 //////////////////////////////////////////////////
 
 // SPI write byte
 void SPI_Write(unsigned char value)
-{				   			 
+{                            
    SPI.transfer(value);
 }
 
 // SPI write command
 void EPD_W21_WriteCMD(unsigned char command)
 {
-	EPD_W21_CS_0;
-	EPD_W21_DC_0;  // D/C#   0:command  1:data  
-	SPI_Write(command);
-	EPD_W21_CS_1;
+    EPD_W21_CS_0;
+    EPD_W21_DC_0;  // D/C#   0:command  1:data  
+    SPI_Write(command);
+    EPD_W21_CS_1;
 }
+
 // SPI write data
-void EPD_W21_WriteDATA(unsigned char datas)
+void EPD_W21_WriteDATA(unsigned char data)
 {
-	EPD_W21_CS_0;
-	EPD_W21_DC_1;  // D/C#   0:command  1:data
-	SPI_Write(datas);
-	EPD_W21_CS_1;
+    EPD_W21_CS_0;
+    EPD_W21_DC_1;  // D/C#   0:command  1:data
+    SPI_Write(data);
+    EPD_W21_CS_1;
 }
 
 //////////////////////////////////////////////////////
@@ -41,14 +47,21 @@ unsigned char partImage[1000]; // Partial canvas space
 
 // Helper Functions
 void epd_wait_busy(void) {
-    while (isEPD_W21_BUSY == 0); // Wait until BUSY is high
+    // Implement a timeout mechanism to avoid potential infinite loops
+    unsigned long start = millis();
+    while (isEPD_W21_BUSY == 0) {
+        if (millis() - start > 5000) { // Timeout after 5 seconds
+            Serial.println("Error: EPD busy timeout");
+            break;
+        }
+    }
 }
 
 void epd_reset(void) {
     EPD_W21_RST_0;
-    delay(10);
+    delay(RESET_DELAY);
     EPD_W21_RST_1;
-    delay(10);
+    delay(RESET_DELAY);
 }
 
 // Initialization
@@ -57,7 +70,7 @@ void epd_init(int mode) {
     EPD_W21_WriteCMD(0x00);
     EPD_W21_WriteDATA(0x1F); // EPD_W21_WriteDATA(0x13) here for 180 deg
     EPD_W21_WriteCMD(0x04); // POWER ON
-    delay(300);
+    delay(POWER_ON_DELAY);
     epd_wait_busy();
 
     switch (mode) {
@@ -98,7 +111,7 @@ void epd_init(int mode) {
 // Update
 void epd_update(void) {
     EPD_W21_WriteCMD(0x12); // DISPLAY update
-    delay(1);
+    delay(DISPLAY_UPDATE_DELAY);
     epd_wait_busy();
 }
 
@@ -140,11 +153,11 @@ void epd_partial_update(unsigned int x_start, unsigned int y_start, const unsign
     EPD_W21_WriteDATA(x_start / 256);
     EPD_W21_WriteDATA(x_start % 256);
     EPD_W21_WriteDATA(x_end / 256);
-    EPD_W21_WriteDATA(x_end % 256 - 1);
+    EPD_W21_WriteDATA((x_end % 256) - 1);
     EPD_W21_WriteDATA(y_start / 256);
     EPD_W21_WriteDATA(y_start % 256);
     EPD_W21_WriteDATA(y_end / 256);
-    EPD_W21_WriteDATA(y_end % 256 - 1);
+    EPD_W21_WriteDATA((y_end % 256) - 1);
     EPD_W21_WriteDATA(0x01);
 
     EPD_W21_WriteCMD(0x13); // Write new data
@@ -164,7 +177,7 @@ void epd_deep_sleep(void) {
 
     EPD_W21_WriteCMD(0X02); // power off
     epd_wait_busy();
-    delay(100);
+    delay(SLEEP_DELAY);
     EPD_W21_WriteCMD(0X07); // deep sleep
     EPD_W21_WriteDATA(0xA5);
 }
